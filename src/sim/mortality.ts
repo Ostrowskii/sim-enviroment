@@ -6,6 +6,9 @@ import type { WorldMap } from "../world/map";
 import { biomeAt } from "../world/map";
 import { addNutrientsAt } from "./resources";
 
+const HUNGER_ENERGY_COST_FACTOR = 0.0007;
+const ACTIVE_ENERGY_DRAIN_MULTIPLIER = 0.58;
+
 export interface UpkeepConfig {
   baseCost: number;
   moveCostFactor: number;
@@ -45,9 +48,10 @@ export function applyAnimalUpkeep(
   animal.reproductionCooldown = Math.max(0, animal.reproductionCooldown - 1);
 
   const movementCost = Math.hypot(animal.vx, animal.vy) * config.moveCostFactor;
-  const hungerCost = animal.hunger * 0.0011;
+  const hungerCost = animal.hunger * HUNGER_ENERGY_COST_FACTOR;
   const activeCost = config.baseCost + movementCost + hungerCost;
-  const totalCost = animal.resting ? activeCost * restEnergyMultiplier : activeCost;
+  const scaledActiveCost = activeCost * ACTIVE_ENERGY_DRAIN_MULTIPLIER;
+  const totalCost = animal.resting ? scaledActiveCost * restEnergyMultiplier : scaledActiveCost;
 
   animal.energy -= totalCost;
   addNutrientsAt(state, world, animal.x, animal.y, totalCost * 0.5);
