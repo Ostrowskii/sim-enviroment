@@ -162,16 +162,9 @@ export function updatePrimaryProducers(state: EcosystemState, world: WorldMap): 
     tree.age += 1;
     tree.spreadCooldown = Math.max(0, tree.spreadCooldown - 1);
 
-    const growthNeed = Math.max(0, tree.maxFood - tree.food);
-    const desiredNutrient = Math.min(tree.nutrientDemand * 1.2, 0.26 + growthNeed * 0.04);
-    const consumed = consumeSoilNutrientsAt(state, tree.x, tree.y, desiredNutrient);
-    const nutrientFactor = desiredNutrient > 0 ? consumed / desiredNutrient : 1;
-    const growth = consumed * 1.85;
-    const solarGrowth = (0.06 + sunlight * 0.28) * (0.55 + nutrientFactor * 0.45);
-    const litter = tree.food * 0.0011;
-
-    tree.food = clamp(tree.food + growth + solarGrowth - 0.02 - litter, 0, tree.maxFood);
-    addNutrientsAt(state, world, tree.x, tree.y, litter * 0.9);
+    const solarGrowth = 0.08 + sunlight * 0.38;
+    // Tree energy only rises with sunlight and only drops when consumed by animals.
+    tree.food = clamp(tree.food + solarGrowth, 0, tree.maxFood);
     tree.energy = tree.food;
     tree.hunger = clamp((1 - tree.food / tree.maxFood) * 100, 0, 100);
     tree.state = tree.food < tree.maxFood * 0.25 ? "rest" : "idle";
