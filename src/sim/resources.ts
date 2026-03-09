@@ -5,6 +5,11 @@ import { clamp } from "../utils/math";
 
 const DAY_LENGTH_TICKS = 1000;
 
+export function sunlightAtTick(tick: number): number {
+  const dayPhase = (tick % DAY_LENGTH_TICKS) / DAY_LENGTH_TICKS;
+  return Math.max(0, Math.sin(dayPhase * Math.PI * 2 - Math.PI / 2));
+}
+
 function cellIndexAt(state: EcosystemState, x: number, y: number): number {
   const grid = state.nutrientGrid;
   const col = Math.max(0, Math.min(grid.cols - 1, Math.floor(x / grid.cellWidth)));
@@ -131,8 +136,7 @@ export function consumeWaterNutrientsAt(
 }
 
 export function updatePrimaryProducers(state: EcosystemState, world: WorldMap): void {
-  const dayPhase = (state.tick % DAY_LENGTH_TICKS) / DAY_LENGTH_TICKS;
-  const sunlight = Math.max(0, Math.sin(dayPhase * Math.PI * 2 - Math.PI / 2));
+  const sunlight = sunlightAtTick(state.tick);
   const grid = state.nutrientGrid;
 
   // Baseline mineral renewal so movement/metabolism losses are repaid by the environment over time.

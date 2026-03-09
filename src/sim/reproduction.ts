@@ -11,7 +11,11 @@ import type { SeededRng } from "../utils/rng";
 import type { WorldMap } from "../world/map";
 import { biomeAt } from "../world/map";
 import { hasNearby } from "./query";
-import { consumeSoilNutrientsAt, consumeWaterNutrientsAt } from "./resources";
+import {
+  consumeSoilNutrientsAt,
+  consumeWaterNutrientsAt,
+  sunlightAtTick
+} from "./resources";
 
 const CAP_TREE = 42;
 const CAP_ALGAE = 130;
@@ -85,6 +89,11 @@ function reproduceAlgae(state: EcosystemState, world: WorldMap, rng: SeededRng):
     return;
   }
 
+  const sunlight = sunlightAtTick(state.tick);
+  if (sunlight <= 0.08) {
+    return;
+  }
+
   const parents = state.algae.slice();
   for (const algae of parents) {
     if (state.algae.length >= CAP_ALGAE) {
@@ -95,7 +104,8 @@ function reproduceAlgae(state: EcosystemState, world: WorldMap, rng: SeededRng):
       continue;
     }
 
-    if (state.waterNutrients < 20 || !rng.chance(0.028)) {
+    const solarSpawnChance = 0.007 + sunlight * 0.05;
+    if (state.waterNutrients < 20 || !rng.chance(solarSpawnChance)) {
       continue;
     }
 
