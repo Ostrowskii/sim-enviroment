@@ -8,13 +8,13 @@ export interface PanelCallbacks {
 }
 
 const SPECIES_LABELS: Record<Species, string> = {
-  tree: "Trees",
-  algae: "Algae",
-  insect: "Insects",
-  fish: "Fish",
-  duck: "Ducks",
-  leopard: "Leopards",
-  carcass: "Carcasses"
+  tree: "Arvores",
+  algae: "Algas",
+  insect: "Insetos",
+  fish: "Peixes",
+  duck: "Patos",
+  leopard: "Leopardos",
+  carcass: "Carcacas"
 };
 
 export class DebugPanel {
@@ -82,7 +82,7 @@ export class DebugPanel {
     this.deathsValue.textContent = metrics.totalDeaths.toString();
     this.soilValue.textContent = metrics.soilNutrients.toFixed(1);
     this.waterValue.textContent = metrics.waterNutrients.toFixed(1);
-    this.pauseButton.textContent = paused ? "Resume" : "Pause";
+    this.pauseButton.textContent = paused ? "Continuar" : "Pausar";
 
     this.setActiveSpeed(speed);
     this.renderSpeciesRows(metrics);
@@ -116,20 +116,20 @@ export class DebugPanel {
 
   private renderSelected(entity: AnyEntity | null): void {
     if (!entity) {
-      this.selectedEntity.textContent = "Click an entity on the map.";
+      this.selectedEntity.textContent = "Clique em uma entidade no mapa.";
       return;
     }
 
     this.selectedEntity.textContent = [
       `id: ${entity.id}`,
-      `species: ${entity.species}`,
-      `state: ${entity.state}`,
-      `alive: ${entity.alive}`,
-      `energy: ${entity.energy.toFixed(1)} / ${entity.maxEnergy.toFixed(1)}`,
-      `age: ${entity.age}`,
-      `hunger: ${entity.hunger.toFixed(1)}`,
-      `position: (${entity.x.toFixed(1)}, ${entity.y.toFixed(1)})`,
-      `velocity: (${entity.vx.toFixed(2)}, ${entity.vy.toFixed(2)})`
+      `especie: ${entity.species}`,
+      `estado: ${entity.state}`,
+      `vivo: ${entity.alive}`,
+      `energia: ${entity.energy.toFixed(1)} / ${entity.maxEnergy.toFixed(1)}`,
+      `idade: ${entity.age}`,
+      `fome: ${entity.hunger.toFixed(1)}`,
+      `posicao: (${entity.x.toFixed(1)}, ${entity.y.toFixed(1)})`,
+      `velocidade: (${entity.vx.toFixed(2)}, ${entity.vy.toFixed(2)})`
     ].join("\n");
   }
 

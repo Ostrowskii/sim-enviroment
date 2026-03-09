@@ -1,70 +1,113 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ecosystem Observer</title>
+    <title>Observador de Ecossistema</title>
   </head>
   <body>
     <div id="app">
       <canvas id="world-canvas"></canvas>
-      <aside id="debug-panel">
-        <h1>Ecosystem Observer</h1>
 
-        <section class="panel-section controls">
-          <div class="control-row">
-            <button id="pause-btn">Pause</button>
-            <button id="restart-btn">Restart</button>
-          </div>
-          <div class="control-row speed-row">
-            <button data-speed="1" class="speed-btn active">1x</button>
-            <button data-speed="2" class="speed-btn">2x</button>
-            <button data-speed="5" class="speed-btn">5x</button>
-          </div>
-          <div class="control-row seed-row">
-            <label for="seed-input">Seed</label>
-            <input id="seed-input" type="number" min="1" step="1" />
-          </div>
-          <label class="overlay-toggle">
-            <input id="overlay-toggle" type="checkbox" />
-            Show Debug Overlay
-          </label>
-        </section>
+      <aside id="left-tabs">
+        <details class="side-tab" id="legend-tab" open>
+          <summary>Legenda</summary>
+          <div class="tab-body legend-body">
+            <h2>Mapa</h2>
+            <ul class="legend-list">
+              <li class="legend-item"><span class="swatch swatch-forest"></span>Floresta (lado esquerdo)</li>
+              <li class="legend-item"><span class="swatch swatch-transition"></span>Transicao entre biomas</li>
+              <li class="legend-item"><span class="swatch swatch-lake"></span>Lago (lado direito)</li>
+            </ul>
 
-        <section class="panel-section metrics">
-          <h2>Simulation</h2>
-          <div class="metric-grid">
-            <div>Tick</div>
-            <div id="tick-value">0</div>
-            <div>Speed</div>
-            <div id="speed-value">1x</div>
-            <div>Total Deaths</div>
-            <div id="deaths-value">0</div>
-            <div>Soil Nutrients</div>
-            <div id="soil-value">0</div>
-            <div>Water Nutrients</div>
-            <div id="water-value">0</div>
+            <h2>Especies</h2>
+            <ul class="legend-list">
+              <li class="legend-item"><span class="dot dot-tree"></span>Arvores produzem comida usando nutrientes do solo</li>
+              <li class="legend-item"><span class="dot dot-algae"></span>Algas crescem na agua usando nutrientes aquaticos</li>
+              <li class="legend-item"><span class="dot dot-insect"></span>Insetos comem arvores</li>
+              <li class="legend-item"><span class="dot dot-fish"></span>Peixes comem algas e insetos na agua</li>
+              <li class="legend-item"><span class="dot dot-duck"></span>Patos priorizam peixes, depois insetos e algas</li>
+              <li class="legend-item"><span class="dot dot-leopard"></span>Leopardos cacam patos em terra</li>
+              <li class="legend-item"><span class="dot dot-carcass"></span>Carcacas decompostas devolvem nutrientes</li>
+            </ul>
+
+            <h2>Ciclo de recursos</h2>
+            <p class="legend-text">
+              Nutrientes do solo/agua alimentam produtores (arvores/algas). Consumidores comem produtores e entre si.
+              Mortes viram carcacas, e a decomposicao fecha o ciclo devolvendo nutrientes para regrowth.
+            </p>
+
+            <h2>Estados comuns</h2>
+            <p class="legend-text">
+              <code>wander</code>: explorando, <code>seek_food</code>: buscando comida, <code>eat</code>: comendo,
+              <code>hunt</code>: cacando, <code>flee</code>: fugindo, <code>rest</code>: recuperando energia.
+            </p>
           </div>
-        </section>
+        </details>
 
-        <section class="panel-section populations">
-          <h2>Populations / Avg Energy</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Species</th>
-                <th>Count</th>
-                <th>Avg Energy</th>
-              </tr>
-            </thead>
-            <tbody id="species-table-body"></tbody>
-          </table>
-        </section>
+        <details class="side-tab" id="info-tab" open>
+          <summary>Painel da Simulacao</summary>
+          <div class="tab-body">
+            <section id="debug-panel">
+              <h1>Observador de Ecossistema</h1>
 
-        <section class="panel-section selected">
-          <h2>Selected Entity</h2>
-          <pre id="selected-entity">Click an entity on the map.</pre>
-        </section>
+              <section class="panel-section controls">
+                <div class="control-row">
+                  <button id="pause-btn">Pausar</button>
+                  <button id="restart-btn">Reiniciar</button>
+                </div>
+                <div class="control-row speed-row">
+                  <button data-speed="1" class="speed-btn active">1x</button>
+                  <button data-speed="2" class="speed-btn">2x</button>
+                  <button data-speed="5" class="speed-btn">5x</button>
+                </div>
+                <div class="control-row seed-row">
+                  <label for="seed-input">Seed</label>
+                  <input id="seed-input" type="number" min="1" step="1" />
+                </div>
+                <label class="overlay-toggle">
+                  <input id="overlay-toggle" type="checkbox" />
+                  Mostrar overlay de debug
+                </label>
+              </section>
+
+              <section class="panel-section metrics">
+                <h2>Simulacao</h2>
+                <div class="metric-grid">
+                  <div>Tick</div>
+                  <div id="tick-value">0</div>
+                  <div>Velocidade</div>
+                  <div id="speed-value">1x</div>
+                  <div>Mortes totais</div>
+                  <div id="deaths-value">0</div>
+                  <div>Nutrientes do solo</div>
+                  <div id="soil-value">0</div>
+                  <div>Nutrientes da agua</div>
+                  <div id="water-value">0</div>
+                </div>
+              </section>
+
+              <section class="panel-section populations">
+                <h2>Populacao / Energia media</h2>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Especie</th>
+                      <th>Contagem</th>
+                      <th>Energia media</th>
+                    </tr>
+                  </thead>
+                  <tbody id="species-table-body"></tbody>
+                </table>
+              </section>
+
+              <section class="panel-section selected">
+                <h2>Entidade selecionada</h2>
+                <pre id="selected-entity">Clique em uma entidade no mapa.</pre>
+              </section>
+            </section>
+          </div>
+        </details>
       </aside>
     </div>
     <script type="module" src="/src/main.ts"></script>
