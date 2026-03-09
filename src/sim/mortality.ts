@@ -43,7 +43,7 @@ export function applyAnimalUpkeep(
 
   animal.age += 1;
   const restEnergyMultiplier = config.restEnergyMultiplier ?? 0.2;
-  const restHungerMultiplier = config.restHungerMultiplier ?? 0.55;
+  const restHungerMultiplier = config.restHungerMultiplier ?? 0.25;
   const hungerMultiplier = animal.resting ? restHungerMultiplier : 1;
   animal.hunger += config.hungerGrowth * hungerMultiplier;
   animal.reproductionCooldown = Math.max(0, animal.reproductionCooldown - 1);

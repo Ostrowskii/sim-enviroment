@@ -36,7 +36,7 @@ export function updateLeopards(
     const aliveAfterUpkeep = applyAnimalUpkeep(state, world, rng, leopard, {
       baseCost: 0.085,
       moveCostFactor: 0.045,
-      hungerGrowth: 0.07,
+      hungerGrowth: 0.0055,
       oldAgeWindow: 850
     });
 

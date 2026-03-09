@@ -131,7 +131,7 @@ function reproduceAlgae(state: EcosystemState, world: WorldMap, rng: SeededRng):
 
 function resetNewbornAnimal(newborn: AnyAnimal): void {
   newborn.age = 0;
-  newborn.hunger = 6;
+  newborn.hunger = 0;
   newborn.vx = 0;
   newborn.vy = 0;
   newborn.state = "idle";

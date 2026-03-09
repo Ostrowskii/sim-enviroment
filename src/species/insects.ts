@@ -31,7 +31,7 @@ export function updateInsects(
     const aliveAfterUpkeep = applyAnimalUpkeep(state, world, rng, insect, {
       baseCost: 0.028,
       moveCostFactor: 0.015,
-      hungerGrowth: 0.02,
+      hungerGrowth: 0.0016,
       oldAgeWindow: 220
     });
 
@@ -131,7 +131,7 @@ export function updateInsects(
       insect.state = "flee";
       steerTowards(insect, nearestLandX(world), insect.y, 0.5, 1.25);
       insect.energy -= 0.1;
-      insect.hunger += 0.03;
+      insect.hunger += 0.0025;
     }
 
     insect.energy = clamp(insect.energy, 0, insect.maxEnergy);

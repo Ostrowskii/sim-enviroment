@@ -33,7 +33,7 @@ export function updateFish(state: EcosystemState, world: WorldMap, rng: SeededRn
     const aliveAfterUpkeep = applyAnimalUpkeep(state, world, rng, fish, {
       baseCost: 0.04,
       moveCostFactor: 0.02,
-      hungerGrowth: 0.035,
+      hungerGrowth: 0.0028,
       oldAgeWindow: 350
     });
 
@@ -181,7 +181,7 @@ export function updateFish(state: EcosystemState, world: WorldMap, rng: SeededRn
 
     if (biomeAt(world, fish.x) !== "lake") {
       fish.energy -= 0.04;
-      fish.hunger += 0.012;
+      fish.hunger += 0.001;
     }
 
     fish.energy = clamp(fish.energy, 0, fish.maxEnergy);

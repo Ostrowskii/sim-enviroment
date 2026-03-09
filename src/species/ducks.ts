@@ -31,7 +31,7 @@ export function updateDucks(
     const aliveAfterUpkeep = applyAnimalUpkeep(state, world, rng, duck, {
       baseCost: 0.055,
       moveCostFactor: 0.03,
-      hungerGrowth: 0.052,
+      hungerGrowth: 0.0041,
       oldAgeWindow: 520
     });
 
@@ -155,7 +155,7 @@ export function updateDucks(
 
     const biome = biomeAt(world, duck.x);
     if (biome === "forest") {
-      duck.hunger += 0.012;
+      duck.hunger += 0.001;
     }
 
     duck.energy = clamp(duck.energy, 0, duck.maxEnergy);
