@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Observador de Ecossistema</title>
+    <script type="module" crossorigin src="/sim-enviroment/assets/index.js"></script>
+    <link rel="stylesheet" crossorigin href="/sim-enviroment/assets/index.css">
   </head>
   <body>
     <div id="app">
@@ -124,25 +126,5 @@
         </details>
       </aside>
     </div>
-    <script type="module">
-      async function bootFromSource() {
-        await import("./src/main.ts");
-      }
-
-      async function bootFromStaticDist() {
-        const link = document.createElement("link");
-        link.rel = "stylesheet";
-        link.href = "./dist/assets/index.css";
-        document.head.appendChild(link);
-        const fallbackEntry = "./dist/assets/index.js";
-        await import(/* @vite-ignore */ fallbackEntry);
-      }
-
-      bootFromSource().catch(() => {
-        void bootFromStaticDist().catch((error) => {
-          console.error("Failed to boot simulation from source and dist fallback.", error);
-        });
-      });
-    </script>
   </body>
 </html>
