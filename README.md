@@ -17,6 +17,12 @@ npm run dev
 
 Then open the local URL shown by Vite.
 
+## GitHub Pages
+
+- This repo includes a workflow at `.github/workflows/deploy-pages.yml`.
+- Every push to `main` builds the app and deploys `dist` to GitHub Pages.
+- For this repository, `vite.config.ts` uses `base: "/sim-enviroment/"`.
+
 ## Simulation Rules (MVP)
 
 - World biomes:
