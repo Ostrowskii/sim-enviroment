@@ -16,7 +16,7 @@ const CAP_TREE = 42;
 const CAP_ALGAE = 130;
 const CAP_INSECT = 190;
 const CAP_FISH = 90;
-const CAP_DUCK = 24;
+const CAP_DUCK = 14;
 const CAP_LEOPARD = 8;
 
 function nearbyPosition(
@@ -137,11 +137,11 @@ function reproduceInsects(state: EcosystemState, world: WorldMap, rng: SeededRng
       return;
     }
 
-    if (!insect.alive || insect.reproductionCooldown > 0 || insect.age < 45 || insect.energy < 17) {
+    if (!insect.alive || insect.reproductionCooldown > 0 || insect.age < 50 || insect.energy < 18) {
       continue;
     }
 
-    if (!rng.chance(0.05)) {
+    if (!rng.chance(0.035)) {
       continue;
     }
 
@@ -152,7 +152,7 @@ function reproduceInsects(state: EcosystemState, world: WorldMap, rng: SeededRng
 
     insect.energy -= 7.5;
     insect.hunger += 7;
-    insect.reproductionCooldown = rng.int(38, 70);
+    insect.reproductionCooldown = rng.int(55, 95);
   }
 }
 
@@ -167,11 +167,11 @@ function reproduceFish(state: EcosystemState, world: WorldMap, rng: SeededRng): 
       return;
     }
 
-    if (!fish.alive || fish.reproductionCooldown > 0 || fish.age < 180 || fish.energy < 30) {
+    if (!fish.alive || fish.reproductionCooldown > 0 || fish.age < 130 || fish.energy < 22) {
       continue;
     }
 
-    if (!rng.chance(0.02)) {
+    if (!rng.chance(0.035)) {
       continue;
     }
 
@@ -186,7 +186,7 @@ function reproduceFish(state: EcosystemState, world: WorldMap, rng: SeededRng): 
 
     fish.energy -= 12;
     fish.hunger += 6;
-    fish.reproductionCooldown = rng.int(140, 240);
+    fish.reproductionCooldown = rng.int(95, 170);
   }
 }
 
@@ -201,11 +201,11 @@ function reproduceDucks(state: EcosystemState, world: WorldMap, rng: SeededRng):
       return;
     }
 
-    if (!duck.alive || duck.reproductionCooldown > 0 || duck.age < 350 || duck.energy < 72) {
+    if (!duck.alive || duck.reproductionCooldown > 0 || duck.age < 110 || duck.energy < 50) {
       continue;
     }
 
-    if (!rng.chance(0.008)) {
+    if (!rng.chance(0.02)) {
       continue;
     }
 
@@ -214,9 +214,9 @@ function reproduceDucks(state: EcosystemState, world: WorldMap, rng: SeededRng):
     resetNewbornAnimal(child);
     child.energy = child.maxEnergy * 0.48;
 
-    duck.energy -= 25;
-    duck.hunger += 8;
-    duck.reproductionCooldown = rng.int(300, 520);
+    duck.energy -= 14;
+    duck.hunger += 4;
+    duck.reproductionCooldown = rng.int(160, 280);
   }
 }
 
@@ -234,13 +234,13 @@ function reproduceLeopards(state: EcosystemState, world: WorldMap, rng: SeededRn
     if (
       !leopard.alive ||
       leopard.reproductionCooldown > 0 ||
-      leopard.age < 650 ||
-      leopard.energy < 138
+      leopard.age < 560 ||
+      leopard.energy < 124
     ) {
       continue;
     }
 
-    if (!rng.chance(0.004)) {
+    if (!rng.chance(0.006)) {
       continue;
     }
 
@@ -253,9 +253,9 @@ function reproduceLeopards(state: EcosystemState, world: WorldMap, rng: SeededRn
     resetNewbornAnimal(child);
     child.energy = child.maxEnergy * 0.45;
 
-    leopard.energy -= 34;
+    leopard.energy -= 28;
     leopard.hunger += 6;
-    leopard.reproductionCooldown = rng.int(650, 980);
+    leopard.reproductionCooldown = rng.int(540, 860);
   }
 }
 

@@ -18,8 +18,8 @@ export function updateDucks(
     }
 
     const aliveAfterUpkeep = applyAnimalUpkeep(state, world, rng, duck, {
-      baseCost: 0.3,
-      hungerGrowth: 0.24,
+      baseCost: 0.18,
+      hungerGrowth: 0.14,
       oldAgeWindow: 440
     });
 
@@ -40,16 +40,18 @@ export function updateDucks(
       steerTowards(duck, world.transitionEndX + 45, duck.y, 0.22, 1.05);
     } else {
       const fishTarget = findNearest(duck, state.fish, duck.vision + 25, (fish) => fish.alive);
-      if (fishTarget) {
-        const fishDistance = distance(duck, fishTarget);
+      const fishDistance = fishTarget ? distance(duck, fishTarget) : Number.POSITIVE_INFINITY;
+      const shouldHuntFish = Boolean(fishTarget) && (duck.hunger > 70 || fishDistance < 18);
+
+      if (shouldHuntFish && fishTarget) {
         duck.state = "hunt";
-        if (fishDistance < 10) {
+        if (fishDistance < 7) {
           killAnimal(state, world, rng, fishTarget, "predation", 0.26);
-          duck.energy = clamp(duck.energy + 22, 0, duck.maxEnergy);
-          duck.hunger = Math.max(0, duck.hunger - 34);
+          duck.energy = clamp(duck.energy + 17, 0, duck.maxEnergy);
+          duck.hunger = Math.max(0, duck.hunger - 26);
           duck.state = "eat";
         } else {
-          steerTowards(duck, fishTarget.x, fishTarget.y, 0.28, 1.15);
+          steerTowards(duck, fishTarget.x, fishTarget.y, 0.2, 1.02);
         }
       } else {
         const insectTarget = findNearest(
@@ -83,12 +85,22 @@ export function updateDucks(
             duck.state = "seek_food";
 
             if (algaeDistance < 9) {
-              const eaten = Math.min(3.2, algaeTarget.biomass);
+              const available = Math.max(0, algaeTarget.biomass - 0.6);
+              const eaten = Math.min(4.8, available);
+              if (eaten <= 0) {
+                duck.state = "wander";
+                applyWander(duck, rng, 0.5);
+                duck.energy = clamp(duck.energy, 0, duck.maxEnergy);
+                duck.hunger = clamp(duck.hunger, 0, 140);
+                advanceAnimal(duck, world, 0.91);
+                continue;
+              }
+
               algaeTarget.biomass -= eaten;
               algaeTarget.energy = algaeTarget.biomass;
 
-              duck.energy = clamp(duck.energy + eaten * 1.9, 0, duck.maxEnergy);
-              duck.hunger = Math.max(0, duck.hunger - eaten * 7);
+              duck.energy = clamp(duck.energy + eaten * 2.2, 0, duck.maxEnergy);
+              duck.hunger = Math.max(0, duck.hunger - eaten * 9);
               duck.state = "eat";
             } else {
               steerTowards(duck, algaeTarget.x, algaeTarget.y, 0.26, 1.05);
@@ -107,7 +119,7 @@ export function updateDucks(
 
     const biome = biomeAt(world, duck.x);
     if (biome === "forest") {
-      duck.hunger += 0.1;
+      duck.hunger += 0.06;
     }
 
     duck.energy = clamp(duck.energy, 0, duck.maxEnergy);

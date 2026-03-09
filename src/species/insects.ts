@@ -18,8 +18,8 @@ export function updateInsects(
     }
 
     const aliveAfterUpkeep = applyAnimalUpkeep(state, world, rng, insect, {
-      baseCost: 0.18,
-      hungerGrowth: 0.38,
+      baseCost: 0.15,
+      hungerGrowth: 0.33,
       oldAgeWindow: 180
     });
 
@@ -49,12 +49,20 @@ export function updateInsects(
       if (targetTree) {
         const treeDistance = distance(insect, targetTree);
         if (treeDistance < 10) {
-          const eaten = Math.min(1.5, targetTree.food);
+          const availableFood = Math.max(0, targetTree.food - 6);
+          const eaten = Math.min(1.2, availableFood);
+          if (eaten <= 0) {
+            insect.state = "wander";
+            applyWander(insect, rng, 0.35);
+            advanceAnimal(insect, world, 0.9);
+            continue;
+          }
+
           targetTree.food -= eaten;
           targetTree.energy = targetTree.food;
 
-          insect.energy = clamp(insect.energy + eaten * 2.2, 0, insect.maxEnergy);
-          insect.hunger = Math.max(0, insect.hunger - eaten * 20);
+          insect.energy = clamp(insect.energy + eaten * 3.0, 0, insect.maxEnergy);
+          insect.hunger = Math.max(0, insect.hunger - eaten * 22);
           insect.state = "eat";
 
           applyWander(insect, rng, 0.15);

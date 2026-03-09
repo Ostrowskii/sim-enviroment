@@ -41,9 +41,9 @@ export function updatePrimaryProducers(state: EcosystemState): void {
   const dayPhase = (state.tick % DAY_LENGTH_TICKS) / DAY_LENGTH_TICKS;
   const sunlight = Math.max(0, Math.sin(dayPhase * Math.PI * 2 - Math.PI / 2));
 
-  // Very small baseline mineral input to prevent nutrient deadlocks.
-  state.soilNutrients = clamp(state.soilNutrients + 0.08, 0, SOIL_NUTRIENT_MAX);
-  state.waterNutrients = clamp(state.waterNutrients + 0.1, 0, WATER_NUTRIENT_MAX);
+  // Baseline mineral input to prevent deadlocks after oscillations.
+  state.soilNutrients = clamp(state.soilNutrients + 0.12, 0, SOIL_NUTRIENT_MAX);
+  state.waterNutrients = clamp(state.waterNutrients + 0.14, 0, WATER_NUTRIENT_MAX);
 
   for (const tree of state.trees) {
     if (!tree.alive) {
@@ -57,9 +57,12 @@ export function updatePrimaryProducers(state: EcosystemState): void {
     const desiredNutrient = Math.min(tree.nutrientDemand, 0.16 + growthNeed * 0.03);
     const consumed = consumeSoilNutrients(state, desiredNutrient);
     const growth = consumed * 1.4;
-    const solarGrowth = 0.03 + sunlight * 0.12;
+    const nutrientFactor = desiredNutrient > 0 ? consumed / desiredNutrient : 1;
+    const solarGrowth = (0.03 + sunlight * 0.14) * (0.45 + nutrientFactor * 0.55);
+    const litter = tree.food * 0.00085;
 
-    tree.food = clamp(tree.food + growth + solarGrowth - 0.03, 0, tree.maxFood);
+    tree.food = clamp(tree.food + growth + solarGrowth - 0.035 - litter, 0, tree.maxFood);
+    state.soilNutrients = clamp(state.soilNutrients + litter * 0.85, 0, SOIL_NUTRIENT_MAX);
     tree.energy = tree.food;
     tree.hunger = clamp((1 - tree.food / tree.maxFood) * 100, 0, 100);
     tree.state = tree.food < tree.maxFood * 0.25 ? "rest" : "idle";
@@ -77,9 +80,12 @@ export function updatePrimaryProducers(state: EcosystemState): void {
     const desiredNutrient = Math.min(1.15, 0.12 + growthNeed * 0.035);
     const consumed = consumeWaterNutrients(state, desiredNutrient);
     const growth = consumed * 1.3;
-    const solarGrowth = 0.04 + sunlight * 0.16;
+    const nutrientFactor = desiredNutrient > 0 ? consumed / desiredNutrient : 1;
+    const solarGrowth = (0.04 + sunlight * 0.18) * (0.4 + nutrientFactor * 0.6);
+    const litter = algae.biomass * 0.0013;
 
-    algae.biomass = clamp(algae.biomass + growth + solarGrowth - 0.02, 0, algae.maxBiomass);
+    algae.biomass = clamp(algae.biomass + growth + solarGrowth - 0.03 - litter, 0, algae.maxBiomass);
+    state.waterNutrients = clamp(state.waterNutrients + litter * 0.88, 0, WATER_NUTRIENT_MAX);
     algae.energy = algae.biomass;
     algae.hunger = clamp((1 - algae.biomass / algae.maxBiomass) * 100, 0, 100);
     algae.state = algae.biomass < algae.maxBiomass * 0.2 ? "rest" : "idle";
