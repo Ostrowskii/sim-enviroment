@@ -20,8 +20,8 @@ import {
 } from "../sim/activity";
 
 const FISH_ACTIVITY = {
-  restBias: 0.4,
-  forageThreshold: 0.42
+  restBias: 0.38,
+  forageThreshold: 0.43
 };
 
 export function updateFish(state: EcosystemState, world: WorldMap, rng: SeededRng): void {
@@ -31,9 +31,9 @@ export function updateFish(state: EcosystemState, world: WorldMap, rng: SeededRn
     }
 
     const aliveAfterUpkeep = applyAnimalUpkeep(state, world, rng, fish, {
-      baseCost: 0.04,
-      moveCostFactor: 0.02,
-      hungerGrowth: 0.0028,
+      baseCost: 0.036,
+      moveCostFactor: 0.025,
+      hungerGrowth: 0.018,
       oldAgeWindow: 350
     });
 

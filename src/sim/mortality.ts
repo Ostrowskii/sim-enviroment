@@ -6,9 +6,9 @@ import type { WorldMap } from "../world/map";
 import { biomeAt } from "../world/map";
 import { addNutrientsAt } from "./resources";
 
-const HUNGER_ENERGY_COST_FACTOR = 0.00045;
-const MOVEMENT_ENERGY_COST_MULTIPLIER = 0.35;
-const ACTIVE_ENERGY_DRAIN_MULTIPLIER = 0.42;
+const HUNGER_ENERGY_COST_FACTOR = 0.00075;
+const MOVEMENT_ENERGY_COST_MULTIPLIER = 0.6;
+const ACTIVE_ENERGY_DRAIN_MULTIPLIER = 1.0;
 
 export interface UpkeepConfig {
   baseCost: number;

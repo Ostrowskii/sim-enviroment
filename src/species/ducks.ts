@@ -14,8 +14,8 @@ import {
 } from "../sim/activity";
 
 const DUCK_ACTIVITY = {
-  restBias: 0.5,
-  forageThreshold: 0.5
+  restBias: 0.56,
+  forageThreshold: 0.56
 };
 
 export function updateDucks(
@@ -29,9 +29,9 @@ export function updateDucks(
     }
 
     const aliveAfterUpkeep = applyAnimalUpkeep(state, world, rng, duck, {
-      baseCost: 0.055,
-      moveCostFactor: 0.03,
-      hungerGrowth: 0.0041,
+      baseCost: 0.1,
+      moveCostFactor: 0.04,
+      hungerGrowth: 0.03,
       oldAgeWindow: 520
     });
 

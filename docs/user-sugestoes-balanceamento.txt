@@ -1,0 +1,76 @@
+Sugestoes do usuario e recalculo de balanceamento
+=================================================
+
+Objetivo geral
+--------------
+- Energia deve cair mais rapido do que estava.
+- Animais devem procurar comida quando necessario.
+- Parte do dia deve ficar parado naturalmente (sem hard lock).
+- Hierarquia de movimento/gasto: leopardo > pato > peixe > inseto.
+- Predacao transfere energia total da presa para o predador (limitado ao maximo do predador).
+- Hibernacao/rest para todos, com economia energetica de ~80%.
+
+Metas de atividade media (referencia)
+-------------------------------------
+- Leopardo: ~2/3 parado, ~1/3 buscando comida no maximo.
+- Pato: ~1/2 parado no minimo.
+- Peixe: intermediario entre pato e inseto.
+- Inseto: perto de 1/5 parado e mais tempo forrageando.
+
+Modelo de energia (tick)
+------------------------
+total_cost = (base_cost + movement_cost + hunger_cost) * ACTIVE_ENERGY_DRAIN_MULTIPLIER
+
+movement_cost = |velocidade| * move_cost_factor * MOVEMENT_ENERGY_COST_MULTIPLIER
+hunger_cost = hunger * HUNGER_ENERGY_COST_FACTOR
+
+Se resting/hibernando:
+- energia: custo final * restEnergyMultiplier (padrao 0.2 -> 80% de economia)
+- fome: hungerGrowth * restHungerMultiplier (padrao 0.25)
+
+Constantes globais aplicadas
+----------------------------
+- HUNGER_ENERGY_COST_FACTOR = 0.00075
+- MOVEMENT_ENERGY_COST_MULTIPLIER = 0.6
+- ACTIVE_ENERGY_DRAIN_MULTIPLIER = 1.0
+
+Parametros por especie aplicados
+--------------------------------
+- Inseto:
+  - baseCost 0.018
+  - moveCostFactor 0.016
+  - hungerGrowth 0.012
+  - restBias 0.20
+  - forageThreshold 0.29
+
+- Peixe:
+  - baseCost 0.036
+  - moveCostFactor 0.025
+  - hungerGrowth 0.018
+  - restBias 0.38
+  - forageThreshold 0.43
+
+- Pato:
+  - baseCost 0.10
+  - moveCostFactor 0.04
+  - hungerGrowth 0.03
+  - restBias 0.56
+  - forageThreshold 0.56
+
+- Leopardo:
+  - baseCost 0.21
+  - moveCostFactor 0.07
+  - hungerGrowth 0.05
+  - restBias 0.74
+  - forageThreshold 0.64
+
+Notas de ciclo fechado
+----------------------
+- Arvores e algas recebem energia solar.
+- Arvores so perdem energia quando consumidas.
+- Peixe come algas/insetos aquaticos.
+- Pato prioriza peixe, depois insetos e algas.
+- Leopardo caca pato.
+- Morte gera carcaca, com atraso de decomposicao de 4h de simulacao (~167 ticks).
+- Decomposicao devolve nutrientes para solo/agua.
+- Custo de reproducao de pato e leopardo: 10% da energia maxima.

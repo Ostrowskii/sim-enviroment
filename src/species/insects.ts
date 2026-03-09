@@ -15,7 +15,7 @@ import {
 
 const INSECT_ACTIVITY = {
   restBias: 0.2,
-  forageThreshold: 0.33
+  forageThreshold: 0.29
 };
 
 export function updateInsects(
@@ -29,9 +29,9 @@ export function updateInsects(
     }
 
     const aliveAfterUpkeep = applyAnimalUpkeep(state, world, rng, insect, {
-      baseCost: 0.028,
-      moveCostFactor: 0.015,
-      hungerGrowth: 0.0016,
+      baseCost: 0.018,
+      moveCostFactor: 0.016,
+      hungerGrowth: 0.012,
       oldAgeWindow: 220
     });
 

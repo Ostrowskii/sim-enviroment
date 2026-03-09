@@ -19,8 +19,8 @@ import {
 } from "../sim/activity";
 
 const LEOPARD_ACTIVITY = {
-  restBias: 0.67,
-  forageThreshold: 0.58
+  restBias: 0.74,
+  forageThreshold: 0.64
 };
 
 export function updateLeopards(
@@ -34,9 +34,9 @@ export function updateLeopards(
     }
 
     const aliveAfterUpkeep = applyAnimalUpkeep(state, world, rng, leopard, {
-      baseCost: 0.085,
-      moveCostFactor: 0.045,
-      hungerGrowth: 0.0055,
+      baseCost: 0.21,
+      moveCostFactor: 0.07,
+      hungerGrowth: 0.05,
       oldAgeWindow: 850
     });
 
