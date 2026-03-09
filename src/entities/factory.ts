@@ -100,6 +100,12 @@ export function createEmptyState(seed: number, world: WorldMap): EcosystemState 
     nextEntityId: 1,
     totalDeaths: 0,
     nutrientGrid,
+    activityStats: {
+      insect: { restTicks: 0, forageTicks: 0, totalTicks: 0 },
+      fish: { restTicks: 0, forageTicks: 0, totalTicks: 0 },
+      duck: { restTicks: 0, forageTicks: 0, totalTicks: 0 },
+      leopard: { restTicks: 0, forageTicks: 0, totalTicks: 0 }
+    },
     soilNutrients: sum(nutrientGrid.soil),
     waterNutrients: sum(nutrientGrid.water),
     trees: [],
@@ -207,8 +213,8 @@ export function spawnInsect(
     reproductionCooldown: rng.int(0, 30),
     maxAge: rng.int(850, 1100),
     wanderAngle: rng.float(0, Math.PI * 2),
-    energyTarget: maxEnergy * 0.75,
-    energyResume: maxEnergy * 0.46,
+    energyTarget: maxEnergy * 0.8,
+    energyResume: maxEnergy * 0.62,
     resting: false
   };
 
@@ -244,8 +250,8 @@ export function spawnFish(
     reproductionCooldown: rng.int(40, 120),
     maxAge: rng.int(2200, 2900),
     wanderAngle: rng.float(0, Math.PI * 2),
-    energyTarget: maxEnergy * 0.74,
-    energyResume: maxEnergy * 0.45,
+    energyTarget: maxEnergy * 0.84,
+    energyResume: maxEnergy * 0.56,
     resting: false
   };
 
@@ -281,8 +287,8 @@ export function spawnDuck(
     reproductionCooldown: rng.int(80, 220),
     maxAge: rng.int(3400, 4300),
     wanderAngle: rng.float(0, Math.PI * 2),
-    energyTarget: maxEnergy * 0.8,
-    energyResume: maxEnergy * 0.52,
+    energyTarget: maxEnergy * 0.87,
+    energyResume: maxEnergy * 0.5,
     resting: false
   };
 
@@ -318,8 +324,8 @@ export function spawnLeopard(
     reproductionCooldown: rng.int(240, 500),
     maxAge: rng.int(5200, 6800),
     wanderAngle: rng.float(0, Math.PI * 2),
-    energyTarget: maxEnergy * 0.82,
-    energyResume: maxEnergy * 0.5,
+    energyTarget: maxEnergy * 0.92,
+    energyResume: maxEnergy * 0.42,
     resting: false
   };
 

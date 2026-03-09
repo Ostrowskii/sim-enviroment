@@ -6,6 +6,17 @@ import { biomeAt } from "../world/map";
 import { applyAnimalUpkeep, eatFromCarcass, feedFromPrey } from "../sim/mortality";
 import { advanceAnimal, applyWander, steerAway, steerTowards } from "../sim/motion";
 import { findNearest } from "../sim/query";
+import {
+  foodPressure,
+  recordActivityTick,
+  shouldForage,
+  updateRestingState
+} from "../sim/activity";
+
+const DUCK_ACTIVITY = {
+  restBias: 0.5,
+  forageThreshold: 0.5
+};
 
 export function updateDucks(
   state: EcosystemState,
@@ -20,36 +31,11 @@ export function updateDucks(
     const aliveAfterUpkeep = applyAnimalUpkeep(state, world, rng, duck, {
       baseCost: 0.055,
       moveCostFactor: 0.03,
-      hungerGrowth: 0.09,
+      hungerGrowth: 0.052,
       oldAgeWindow: 520
     });
 
     if (!aliveAfterUpkeep) {
-      continue;
-    }
-
-    if (duck.resting) {
-      if (duck.energy <= duck.energyResume || duck.hunger > 44) {
-        duck.resting = false;
-      } else {
-        duck.state = "rest";
-        duck.vx *= 0.58;
-        duck.vy *= 0.58;
-        duck.energy = clamp(duck.energy, 0, duck.maxEnergy);
-        duck.hunger = clamp(duck.hunger, 0, 140);
-        advanceAnimal(duck, world, 0.91);
-        continue;
-      }
-    }
-
-    if (!duck.resting && duck.energy >= duck.energyTarget && duck.hunger < 16) {
-      duck.resting = true;
-      duck.state = "rest";
-      duck.vx *= 0.62;
-      duck.vy *= 0.62;
-      duck.energy = clamp(duck.energy, 0, duck.maxEnergy);
-      duck.hunger = clamp(duck.hunger, 0, 140);
-      advanceAnimal(duck, world, 0.91);
       continue;
     }
 
@@ -59,13 +45,30 @@ export function updateDucks(
       duck.vision * 0.8,
       (leopard) => leopard.alive
     );
+    const threatened =
+      Boolean(nearbyLeopard) &&
+      distance(duck, nearbyLeopard as { x: number; y: number }) < 102;
+    const pressure = foodPressure(duck);
+    updateRestingState(duck, pressure, threatened, DUCK_ACTIVITY, rng);
 
-    if (nearbyLeopard && distance(duck, nearbyLeopard) < 102) {
+    if (duck.resting && !threatened) {
+      duck.state = "rest";
+      duck.vx *= 0.46;
+      duck.vy *= 0.46;
+      duck.energy = clamp(duck.energy, 0, duck.maxEnergy);
+      duck.hunger = clamp(duck.hunger, 0, 140);
+      recordActivityTick(state, "duck", duck.state);
+      advanceAnimal(duck, world, 0.91);
+      continue;
+    }
+
+    if (nearbyLeopard && threatened) {
+      duck.resting = false;
       duck.state = "flee";
       steerAway(duck, nearbyLeopard.x, nearbyLeopard.y, 0.5, 1.26);
       steerTowards(duck, world.transitionEndX + 45, duck.y, 0.24, 1.08);
     } else {
-      const needFood = duck.energy <= duck.energyResume || duck.hunger > 46;
+      const needFood = shouldForage(duck, pressure, DUCK_ACTIVITY, rng);
       const fishTarget = findNearest(duck, state.fish, duck.vision + 28, (fish) => fish.alive);
       const insectTarget = findNearest(duck, state.insects, duck.vision, (insect) => insect.alive);
       const algaeTarget = findNearest(
@@ -83,7 +86,7 @@ export function updateDucks(
 
       if (!needFood) {
         duck.state = "wander";
-        applyWander(duck, rng, 0.35);
+        applyWander(duck, rng, 0.1);
         if (biomeAt(world, duck.x) === "forest") {
           steerTowards(duck, world.transitionEndX + 24, duck.y, 0.12, 1);
         }
@@ -136,14 +139,14 @@ export function updateDucks(
             duck.state = "eat";
           } else {
             duck.state = "wander";
-            applyWander(duck, rng, 0.55);
+            applyWander(duck, rng, 0.14);
           }
         } else {
           steerTowards(duck, algaeTarget.x, algaeTarget.y, 0.26, 1.04);
         }
       } else {
         duck.state = "wander";
-        applyWander(duck, rng, 0.7);
+        applyWander(duck, rng, 0.22);
         if (duck.hunger > 40) {
           steerTowards(duck, world.transitionEndX + 30, duck.y, 0.11, 1);
         }
@@ -152,12 +155,13 @@ export function updateDucks(
 
     const biome = biomeAt(world, duck.x);
     if (biome === "forest") {
-      duck.hunger += 0.02;
+      duck.hunger += 0.012;
     }
 
     duck.energy = clamp(duck.energy, 0, duck.maxEnergy);
     duck.hunger = clamp(duck.hunger, 0, 140);
 
+    recordActivityTick(state, "duck", duck.state);
     advanceAnimal(duck, world, 0.91);
   }
 }

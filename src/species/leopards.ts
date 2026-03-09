@@ -11,6 +11,17 @@ import {
   steerTowards
 } from "../sim/motion";
 import { findNearest } from "../sim/query";
+import {
+  foodPressure,
+  recordActivityTick,
+  shouldForage,
+  updateRestingState
+} from "../sim/activity";
+
+const LEOPARD_ACTIVITY = {
+  restBias: 0.67,
+  forageThreshold: 0.58
+};
 
 export function updateLeopards(
   state: EcosystemState,
@@ -25,7 +36,7 @@ export function updateLeopards(
     const aliveAfterUpkeep = applyAnimalUpkeep(state, world, rng, leopard, {
       baseCost: 0.085,
       moveCostFactor: 0.045,
-      hungerGrowth: 0.08,
+      hungerGrowth: 0.07,
       oldAgeWindow: 850
     });
 
@@ -33,34 +44,6 @@ export function updateLeopards(
       continue;
     }
 
-    if (leopard.resting) {
-      if (leopard.energy <= leopard.energyResume || leopard.hunger > 40) {
-        leopard.resting = false;
-      } else {
-        leopard.state = "rest";
-        leopard.vx *= 0.56;
-        leopard.vy *= 0.56;
-        keepLeopardOnLand(leopard, world);
-        leopard.energy = clamp(leopard.energy, 0, leopard.maxEnergy);
-        leopard.hunger = clamp(leopard.hunger, 0, 140);
-        advanceAnimal(leopard, world, 0.9);
-        continue;
-      }
-    }
-
-    if (!leopard.resting && leopard.energy >= leopard.energyTarget && leopard.hunger < 14) {
-      leopard.resting = true;
-      leopard.state = "rest";
-      leopard.vx *= 0.62;
-      leopard.vy *= 0.62;
-      keepLeopardOnLand(leopard, world);
-      leopard.energy = clamp(leopard.energy, 0, leopard.maxEnergy);
-      leopard.hunger = clamp(leopard.hunger, 0, 140);
-      advanceAnimal(leopard, world, 0.9);
-      continue;
-    }
-
-    const needFood = leopard.energy <= leopard.energyResume || leopard.hunger > 36;
     const duckTarget = findNearest(
       leopard,
       state.ducks,
@@ -73,10 +56,27 @@ export function updateLeopards(
       leopard.vision,
       (carcass) => !carcass.aquatic && carcass.biomass > 2
     );
+    const threatened = false;
+    const pressure = foodPressure(leopard);
+    updateRestingState(leopard, pressure, threatened, LEOPARD_ACTIVITY, rng);
+
+    if (leopard.resting) {
+      leopard.state = "rest";
+      leopard.vx *= 0.44;
+      leopard.vy *= 0.44;
+      keepLeopardOnLand(leopard, world);
+      leopard.energy = clamp(leopard.energy, 0, leopard.maxEnergy);
+      leopard.hunger = clamp(leopard.hunger, 0, 140);
+      recordActivityTick(state, "leopard", leopard.state);
+      advanceAnimal(leopard, world, 0.9);
+      continue;
+    }
+
+    const needFood = shouldForage(leopard, pressure, LEOPARD_ACTIVITY, rng);
 
     if (!needFood) {
       leopard.state = "wander";
-      applyWander(leopard, rng, 0.3);
+      applyWander(leopard, rng, 0.06);
     } else if (landCarcass && (state.ducks.length <= 2 || leopard.hunger > 65)) {
       const carcassDistance = distance(leopard, landCarcass);
       leopard.state = "seek_food";
@@ -111,7 +111,7 @@ export function updateLeopards(
       }
     } else {
       leopard.state = "wander";
-      applyWander(leopard, rng, 0.64);
+      applyWander(leopard, rng, 0.18);
       if (leopard.x > world.forestEndX + 70) {
         steerTowards(leopard, world.forestEndX - 24, leopard.y, 0.1, 1);
       }
@@ -122,6 +122,7 @@ export function updateLeopards(
     leopard.energy = clamp(leopard.energy, 0, leopard.maxEnergy);
     leopard.hunger = clamp(leopard.hunger, 0, 140);
 
+    recordActivityTick(state, "leopard", leopard.state);
     advanceAnimal(leopard, world, 0.9);
   }
 }

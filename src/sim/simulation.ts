@@ -1,5 +1,6 @@
 import { createInitialState } from "../entities/factory";
 import type {
+  AnimalSpecies,
   AnyEntity,
   EcosystemState,
   SimulationMetrics,
@@ -32,6 +33,7 @@ const SPECIES_ORDER: Species[] = [
   "leopard",
   "carcass"
 ];
+const ANIMAL_SPECIES: AnimalSpecies[] = ["insect", "fish", "duck", "leopard"];
 
 export class EcosystemSimulation {
   readonly tickRate: number;
@@ -139,7 +141,8 @@ export class EcosystemSimulation {
       totalDeaths: this._state.totalDeaths,
       soilNutrients: this._state.soilNutrients,
       waterNutrients: this._state.waterNutrients,
-      species: speciesData
+      species: speciesData,
+      activity: this.activityRatios()
     };
   }
 
@@ -154,6 +157,29 @@ export class EcosystemSimulation {
     this._state.leopards = this._state.leopards.filter((entity) => entity.alive);
     this._state.trees = this._state.trees.filter((entity) => entity.alive);
     this._state.algae = this._state.algae.filter((entity) => entity.alive);
+  }
+
+  private activityRatios(): SimulationMetrics["activity"] {
+    const activity: SimulationMetrics["activity"] = {
+      insect: { restPercentage: 0, foragePercentage: 0 },
+      fish: { restPercentage: 0, foragePercentage: 0 },
+      duck: { restPercentage: 0, foragePercentage: 0 },
+      leopard: { restPercentage: 0, foragePercentage: 0 }
+    };
+
+    for (const species of ANIMAL_SPECIES) {
+      const stats = this._state.activityStats[species];
+      if (stats.totalTicks <= 0) {
+        continue;
+      }
+
+      activity[species] = {
+        restPercentage: (stats.restTicks / stats.totalTicks) * 100,
+        foragePercentage: (stats.forageTicks / stats.totalTicks) * 100
+      };
+    }
+
+    return activity;
   }
 }
 

@@ -12,6 +12,17 @@ import {
   steerTowards
 } from "../sim/motion";
 import { findNearest } from "../sim/query";
+import {
+  foodPressure,
+  recordActivityTick,
+  shouldForage,
+  updateRestingState
+} from "../sim/activity";
+
+const FISH_ACTIVITY = {
+  restBias: 0.4,
+  forageThreshold: 0.42
+};
 
 export function updateFish(state: EcosystemState, world: WorldMap, rng: SeededRng): void {
   for (const fish of state.fish) {
@@ -22,7 +33,7 @@ export function updateFish(state: EcosystemState, world: WorldMap, rng: SeededRn
     const aliveAfterUpkeep = applyAnimalUpkeep(state, world, rng, fish, {
       baseCost: 0.04,
       moveCostFactor: 0.02,
-      hungerGrowth: 0.14,
+      hungerGrowth: 0.035,
       oldAgeWindow: 350
     });
 
@@ -30,29 +41,26 @@ export function updateFish(state: EcosystemState, world: WorldMap, rng: SeededRn
       continue;
     }
 
-    if (fish.resting) {
-      if (fish.energy <= fish.energyResume || fish.hunger > 40) {
-        fish.resting = false;
-      } else {
-        fish.state = "rest";
-        fish.vx *= 0.62;
-        fish.vy *= 0.62;
-        keepFishInLake(fish, world);
-        fish.energy = clamp(fish.energy, 0, fish.maxEnergy);
-        fish.hunger = clamp(fish.hunger, 0, 140);
-        advanceAnimal(fish, world, 0.93);
-        continue;
-      }
-    }
+    const nearbyDuck = findNearest(
+      fish,
+      state.ducks,
+      fish.vision * 0.85,
+      (duck) => duck.alive
+    );
+    const threatened =
+      Boolean(nearbyDuck) &&
+      distance(fish, nearbyDuck as { x: number; y: number }) < fish.vision * 0.66;
+    const pressure = foodPressure(fish);
+    updateRestingState(fish, pressure, threatened, FISH_ACTIVITY, rng);
 
-    if (!fish.resting && fish.energy >= fish.energyTarget && fish.hunger < 15) {
-      fish.resting = true;
+    if (fish.resting && !threatened) {
       fish.state = "rest";
-      fish.vx *= 0.68;
-      fish.vy *= 0.68;
+      fish.vx *= 0.48;
+      fish.vy *= 0.48;
       keepFishInLake(fish, world);
       fish.energy = clamp(fish.energy, 0, fish.maxEnergy);
       fish.hunger = clamp(fish.hunger, 0, 140);
+      recordActivityTick(state, "fish", fish.state);
       advanceAnimal(fish, world, 0.93);
       continue;
     }
@@ -75,31 +83,28 @@ export function updateFish(state: EcosystemState, world: WorldMap, rng: SeededRn
       fish.vision * 1.1,
       (carcass) => carcass.aquatic && carcass.biomass > 1.2
     );
-    const nearbyDuck = findNearest(
-      fish,
-      state.ducks,
-      fish.vision * 0.85,
-      (duck) => duck.alive
-    );
 
-    if (nearbyDuck && distance(fish, nearbyDuck) < fish.vision * 0.66) {
+    if (nearbyDuck && threatened) {
+      fish.resting = false;
       fish.state = "flee";
       steerAway(fish, nearbyDuck.x, nearbyDuck.y, 0.4, 1.24);
       keepFishInLake(fish, world);
       fish.energy = clamp(fish.energy, 0, fish.maxEnergy);
       fish.hunger = clamp(fish.hunger, 0, 140);
+      recordActivityTick(state, "fish", fish.state);
       advanceAnimal(fish, world, 0.93);
       continue;
     }
 
-    const needFood = fish.energy <= fish.energyResume || fish.hunger > 42;
+    const needFood = shouldForage(fish, pressure, FISH_ACTIVITY, rng);
 
     if (!needFood) {
       fish.state = "wander";
-      applyWander(fish, rng, 0.45);
+      applyWander(fish, rng, 0.14);
       keepFishInLake(fish, world);
       fish.energy = clamp(fish.energy, 0, fish.maxEnergy);
       fish.hunger = clamp(fish.hunger, 0, 140);
+      recordActivityTick(state, "fish", fish.state);
       advanceAnimal(fish, world, 0.93);
       continue;
     }
@@ -129,7 +134,7 @@ export function updateFish(state: EcosystemState, world: WorldMap, rng: SeededRn
           fish.state = "eat";
         } else {
           fish.state = "wander";
-          applyWander(fish, rng, 0.45);
+          applyWander(fish, rng, 0.16);
         }
       } else {
         steerTowards(fish, algaeFood.x, algaeFood.y, 0.3, 1.1);
@@ -162,26 +167,27 @@ export function updateFish(state: EcosystemState, world: WorldMap, rng: SeededRn
           fish.state = "eat";
         } else {
           fish.state = "wander";
-          applyWander(fish, rng, 0.38);
+          applyWander(fish, rng, 0.14);
         }
       } else {
         steerTowards(fish, algaeFood.x, algaeFood.y, 0.26, 1.06);
       }
     } else {
       fish.state = "wander";
-      applyWander(fish, rng, 0.8);
+      applyWander(fish, rng, 0.28);
     }
 
     keepFishInLake(fish, world);
 
     if (biomeAt(world, fish.x) !== "lake") {
       fish.energy -= 0.04;
-      fish.hunger += 0.07;
+      fish.hunger += 0.012;
     }
 
     fish.energy = clamp(fish.energy, 0, fish.maxEnergy);
     fish.hunger = clamp(fish.hunger, 0, 140);
 
+    recordActivityTick(state, "fish", fish.state);
     advanceAnimal(fish, world, 0.93);
   }
 }

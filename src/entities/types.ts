@@ -10,6 +10,7 @@ export type Species =
   | "carcass";
 
 export type LivingSpecies = Exclude<Species, "carcass">;
+export type AnimalSpecies = "insect" | "fish" | "duck" | "leopard";
 
 export type BehaviorState =
   | "idle"
@@ -53,7 +54,7 @@ export interface AlgaeEntity extends EntityBase {
 }
 
 export interface AnimalEntity extends EntityBase {
-  species: "insect" | "fish" | "duck" | "leopard";
+  species: AnimalSpecies;
   speed: number;
   reproductionCooldown: number;
   maxAge: number;
@@ -102,6 +103,12 @@ export interface NutrientGrid {
   waterMask: boolean[];
 }
 
+export interface SpeciesActivityStats {
+  restTicks: number;
+  forageTicks: number;
+  totalTicks: number;
+}
+
 export type AnyAnimal = InsectEntity | FishEntity | DuckEntity | LeopardEntity;
 
 export type AnyEntity =
@@ -119,6 +126,7 @@ export interface EcosystemState {
   nextEntityId: number;
   totalDeaths: number;
   nutrientGrid: NutrientGrid;
+  activityStats: Record<AnimalSpecies, SpeciesActivityStats>;
   soilNutrients: number;
   waterNutrients: number;
   trees: TreeEntity[];
@@ -141,4 +149,11 @@ export interface SimulationMetrics {
   soilNutrients: number;
   waterNutrients: number;
   species: Record<Species, SpeciesMetrics>;
+  activity: Record<
+    AnimalSpecies,
+    {
+      restPercentage: number;
+      foragePercentage: number;
+    }
+  >;
 }

@@ -11,6 +11,8 @@ export interface UpkeepConfig {
   moveCostFactor: number;
   hungerGrowth: number;
   oldAgeWindow: number;
+  restEnergyMultiplier?: number;
+  restHungerMultiplier?: number;
 }
 
 export interface KillOptions {
@@ -36,12 +38,16 @@ export function applyAnimalUpkeep(
   }
 
   animal.age += 1;
-  animal.hunger += config.hungerGrowth;
+  const restEnergyMultiplier = config.restEnergyMultiplier ?? 0.2;
+  const restHungerMultiplier = config.restHungerMultiplier ?? 0.55;
+  const hungerMultiplier = animal.resting ? restHungerMultiplier : 1;
+  animal.hunger += config.hungerGrowth * hungerMultiplier;
   animal.reproductionCooldown = Math.max(0, animal.reproductionCooldown - 1);
 
   const movementCost = Math.hypot(animal.vx, animal.vy) * config.moveCostFactor;
   const hungerCost = animal.hunger * 0.0011;
-  const totalCost = config.baseCost + movementCost + hungerCost;
+  const activeCost = config.baseCost + movementCost + hungerCost;
+  const totalCost = animal.resting ? activeCost * restEnergyMultiplier : activeCost;
 
   animal.energy -= totalCost;
   addNutrientsAt(state, world, animal.x, animal.y, totalCost * 0.5);
