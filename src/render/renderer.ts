@@ -199,10 +199,15 @@ export class Renderer {
       }
       case "carcass": {
         const r = (4 + Math.min(1, entity.biomass / entity.maxBiomass) * 8) * this.transform.scale;
-        ctx.fillStyle = "#6e2c21";
+        ctx.fillStyle = entity.isLeftover ? "#7f3c2a" : "#6e2c21";
         ctx.beginPath();
         ctx.ellipse(p.x, p.y, r, r * 0.62, 0, 0, Math.PI * 2);
         ctx.fill();
+        if (entity.isLeftover) {
+          ctx.strokeStyle = "rgba(243, 211, 124, 0.7)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
         break;
       }
       default:

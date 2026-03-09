@@ -58,6 +58,9 @@ export interface AnimalEntity extends EntityBase {
   reproductionCooldown: number;
   maxAge: number;
   wanderAngle: number;
+  energyTarget: number;
+  energyResume: number;
+  resting: boolean;
 }
 
 export interface InsectEntity extends AnimalEntity {
@@ -83,6 +86,20 @@ export interface CarcassEntity extends EntityBase {
   maxBiomass: number;
   decayRate: number;
   aquatic: boolean;
+  decomposeDelayTicks: number;
+  isLeftover: boolean;
+}
+
+export interface NutrientGrid {
+  cols: number;
+  rows: number;
+  cellWidth: number;
+  cellHeight: number;
+  maxPerCell: number;
+  soil: number[];
+  water: number[];
+  soilMask: boolean[];
+  waterMask: boolean[];
 }
 
 export type AnyAnimal = InsectEntity | FishEntity | DuckEntity | LeopardEntity;
@@ -101,6 +118,7 @@ export interface EcosystemState {
   seed: number;
   nextEntityId: number;
   totalDeaths: number;
+  nutrientGrid: NutrientGrid;
   soilNutrients: number;
   waterNutrients: number;
   trees: TreeEntity[];

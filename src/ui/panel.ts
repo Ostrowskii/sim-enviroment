@@ -120,6 +120,24 @@ export class DebugPanel {
       return;
     }
 
+    const animalLines =
+      "energyTarget" in entity
+        ? [
+            `objetivo energia: ${entity.energyTarget.toFixed(1)}`,
+            `retoma busca: ${entity.energyResume.toFixed(1)}`,
+            `hibernando: ${entity.resting}`
+          ]
+        : [];
+
+    const carcassLines =
+      entity.species === "carcass"
+        ? [
+            `biomassa: ${entity.biomass.toFixed(1)} / ${entity.maxBiomass.toFixed(1)}`,
+            `resto de comida: ${entity.isLeftover}`,
+            `inicio decomposicao: tick +${entity.decomposeDelayTicks}`
+          ]
+        : [];
+
     this.selectedEntity.textContent = [
       `id: ${entity.id}`,
       `especie: ${entity.species}`,
@@ -129,7 +147,9 @@ export class DebugPanel {
       `idade: ${entity.age}`,
       `fome: ${entity.hunger.toFixed(1)}`,
       `posicao: (${entity.x.toFixed(1)}, ${entity.y.toFixed(1)})`,
-      `velocidade: (${entity.vx.toFixed(2)}, ${entity.vy.toFixed(2)})`
+      `velocidade: (${entity.vx.toFixed(2)}, ${entity.vy.toFixed(2)})`,
+      ...animalLines,
+      ...carcassLines
     ].join("\n");
   }
 

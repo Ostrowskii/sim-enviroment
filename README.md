@@ -31,15 +31,16 @@ Then open the local URL shown by Vite.
   - Soft transition zone in the middle
 - Tick-based simulation (default `10 ticks/s`) with deterministic seeded RNG.
 - Resource loop:
-  - Trees consume soil nutrients and produce edible biomass.
-  - Algae consume water nutrients and regrow biomass.
-  - Insects eat trees.
-  - Fish eat algae and insects in water.
-  - Ducks prioritize fish, then insects, then algae.
-  - Leopards hunt ducks on land.
-  - Dead animals become carcasses.
-  - Carcasses decompose and return nutrients to soil/water.
-- Population dynamics include hunger, energy, age, reproduction, starvation, predation, and old-age death.
+  - Nutrients are local (grid-based) for soil and water.
+  - Trees and algae gain energy from sunlight plus local nutrients.
+  - Insects eat trees and can scavenge land carcasses/rests.
+  - Fish eat algae, insects in water, and aquatic carcasses/rests.
+  - Ducks prioritize fish, then insects/algae, and can scavenge.
+  - Leopards only hunt ducks when energy is needed; otherwise they rest.
+  - Predators absorb prey energy up to `maxEnergy`; overflow becomes leftovers.
+  - Any animal death (predation/starvation/age) leaves a body resource.
+  - Decomposition starts after `4h` of simulation (`~167 ticks`) and returns nutrients slowly.
+- Population dynamics include hunger, energy targets (hysteresis rest/hunt), age, reproduction, starvation, predation, and old-age death.
 
 ## Controls
 
@@ -67,3 +68,4 @@ Then open the local URL shown by Vite.
 ## Notes
 
 - `vibinet` dependency is intentionally kept installed for future online work, but not used in this single-player prototype.
+- Energy model and balancing math are documented in `docs/energy-balance.txt`.

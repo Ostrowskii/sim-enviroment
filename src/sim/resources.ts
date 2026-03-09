@@ -3,47 +3,152 @@ import type { WorldMap } from "../world/map";
 import { biomeAt } from "../world/map";
 import { clamp } from "../utils/math";
 
-const SOIL_NUTRIENT_MAX = 3200;
-const WATER_NUTRIENT_MAX = 3200;
 const DAY_LENGTH_TICKS = 1000;
+
+function cellIndexAt(state: EcosystemState, x: number, y: number): number {
+  const grid = state.nutrientGrid;
+  const col = Math.max(0, Math.min(grid.cols - 1, Math.floor(x / grid.cellWidth)));
+  const row = Math.max(0, Math.min(grid.rows - 1, Math.floor(y / grid.cellHeight)));
+  return row * grid.cols + col;
+}
+
+function diffuseNutrients(
+  values: number[],
+  mask: readonly boolean[],
+  cols: number,
+  rows: number,
+  amount: number,
+  maxPerCell: number
+): void {
+  const next = values.slice();
+  for (let row = 0; row < rows; row += 1) {
+    for (let col = 0; col < cols; col += 1) {
+      const index = row * cols + col;
+      if (!mask[index]) {
+        continue;
+      }
+
+      let sum = values[index];
+      let count = 1;
+      const neighbors = [
+        [col - 1, row],
+        [col + 1, row],
+        [col, row - 1],
+        [col, row + 1]
+      ];
+
+      for (const [nx, ny] of neighbors) {
+        if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) {
+          continue;
+        }
+        const nIndex = ny * cols + nx;
+        if (!mask[nIndex]) {
+          continue;
+        }
+        sum += values[nIndex];
+        count += 1;
+      }
+
+      const average = sum / count;
+      next[index] = clamp(values[index] + (average - values[index]) * amount, 0, maxPerCell);
+    }
+  }
+
+  for (let i = 0; i < values.length; i += 1) {
+    values[i] = next[i];
+  }
+}
+
+export function syncNutrientTotals(state: EcosystemState): void {
+  let soilTotal = 0;
+  let waterTotal = 0;
+
+  for (const value of state.nutrientGrid.soil) {
+    soilTotal += value;
+  }
+  for (const value of state.nutrientGrid.water) {
+    waterTotal += value;
+  }
+
+  state.soilNutrients = soilTotal;
+  state.waterNutrients = waterTotal;
+}
 
 export function addNutrientsAt(
   state: EcosystemState,
   world: WorldMap,
   x: number,
+  y: number,
   amount: number
 ): void {
   if (amount <= 0) {
     return;
   }
 
+  const grid = state.nutrientGrid;
+  const index = cellIndexAt(state, x, y);
   const biome = biomeAt(world, x);
+
   if (biome === "lake") {
-    state.waterNutrients = clamp(state.waterNutrients + amount, 0, WATER_NUTRIENT_MAX);
+    grid.water[index] = clamp(grid.water[index] + amount, 0, grid.maxPerCell);
   } else {
-    state.soilNutrients = clamp(state.soilNutrients + amount, 0, SOIL_NUTRIENT_MAX);
+    grid.soil[index] = clamp(grid.soil[index] + amount, 0, grid.maxPerCell);
   }
 }
 
-export function consumeSoilNutrients(state: EcosystemState, amount: number): number {
-  const used = Math.min(amount, state.soilNutrients);
-  state.soilNutrients -= used;
+export function consumeSoilNutrientsAt(
+  state: EcosystemState,
+  x: number,
+  y: number,
+  amount: number
+): number {
+  if (amount <= 0) {
+    return 0;
+  }
+
+  const index = cellIndexAt(state, x, y);
+  const cell = state.nutrientGrid.soil[index];
+  const used = Math.min(amount, cell);
+  state.nutrientGrid.soil[index] -= used;
   return used;
 }
 
-export function consumeWaterNutrients(state: EcosystemState, amount: number): number {
-  const used = Math.min(amount, state.waterNutrients);
-  state.waterNutrients -= used;
+export function consumeWaterNutrientsAt(
+  state: EcosystemState,
+  x: number,
+  y: number,
+  amount: number
+): number {
+  if (amount <= 0) {
+    return 0;
+  }
+
+  const index = cellIndexAt(state, x, y);
+  const cell = state.nutrientGrid.water[index];
+  const used = Math.min(amount, cell);
+  state.nutrientGrid.water[index] -= used;
   return used;
 }
 
-export function updatePrimaryProducers(state: EcosystemState): void {
+export function updatePrimaryProducers(state: EcosystemState, world: WorldMap): void {
   const dayPhase = (state.tick % DAY_LENGTH_TICKS) / DAY_LENGTH_TICKS;
   const sunlight = Math.max(0, Math.sin(dayPhase * Math.PI * 2 - Math.PI / 2));
+  const grid = state.nutrientGrid;
 
-  // Baseline mineral input to prevent deadlocks after oscillations.
-  state.soilNutrients = clamp(state.soilNutrients + 0.12, 0, SOIL_NUTRIENT_MAX);
-  state.waterNutrients = clamp(state.waterNutrients + 0.14, 0, WATER_NUTRIENT_MAX);
+  // Baseline mineral renewal so movement/metabolism losses are repaid by the environment over time.
+  for (let i = 0; i < grid.soil.length; i += 1) {
+    if (grid.soilMask[i]) {
+      grid.soil[i] = clamp(grid.soil[i] + 0.02 + sunlight * 0.008, 0, grid.maxPerCell);
+    }
+    if (grid.waterMask[i]) {
+      grid.water[i] = clamp(grid.water[i] + 0.026 + sunlight * 0.01, 0, grid.maxPerCell);
+    }
+  }
+
+  if (state.tick % 12 === 0) {
+    diffuseNutrients(grid.soil, grid.soilMask, grid.cols, grid.rows, 0.08, grid.maxPerCell);
+    diffuseNutrients(grid.water, grid.waterMask, grid.cols, grid.rows, 0.1, grid.maxPerCell);
+  }
 
   for (const tree of state.trees) {
     if (!tree.alive) {
@@ -54,15 +159,15 @@ export function updatePrimaryProducers(state: EcosystemState): void {
     tree.spreadCooldown = Math.max(0, tree.spreadCooldown - 1);
 
     const growthNeed = Math.max(0, tree.maxFood - tree.food);
-    const desiredNutrient = Math.min(tree.nutrientDemand, 0.16 + growthNeed * 0.03);
-    const consumed = consumeSoilNutrients(state, desiredNutrient);
-    const growth = consumed * 1.4;
+    const desiredNutrient = Math.min(tree.nutrientDemand * 1.2, 0.26 + growthNeed * 0.04);
+    const consumed = consumeSoilNutrientsAt(state, tree.x, tree.y, desiredNutrient);
     const nutrientFactor = desiredNutrient > 0 ? consumed / desiredNutrient : 1;
-    const solarGrowth = (0.03 + sunlight * 0.14) * (0.45 + nutrientFactor * 0.55);
-    const litter = tree.food * 0.00085;
+    const growth = consumed * 1.85;
+    const solarGrowth = (0.06 + sunlight * 0.28) * (0.55 + nutrientFactor * 0.45);
+    const litter = tree.food * 0.0011;
 
-    tree.food = clamp(tree.food + growth + solarGrowth - 0.035 - litter, 0, tree.maxFood);
-    state.soilNutrients = clamp(state.soilNutrients + litter * 0.85, 0, SOIL_NUTRIENT_MAX);
+    tree.food = clamp(tree.food + growth + solarGrowth - 0.02 - litter, 0, tree.maxFood);
+    addNutrientsAt(state, world, tree.x, tree.y, litter * 0.9);
     tree.energy = tree.food;
     tree.hunger = clamp((1 - tree.food / tree.maxFood) * 100, 0, 100);
     tree.state = tree.food < tree.maxFood * 0.25 ? "rest" : "idle";
@@ -77,20 +182,19 @@ export function updatePrimaryProducers(state: EcosystemState): void {
     algae.spreadCooldown = Math.max(0, algae.spreadCooldown - 1);
 
     const growthNeed = Math.max(0, algae.maxBiomass - algae.biomass);
-    const desiredNutrient = Math.min(1.15, 0.12 + growthNeed * 0.035);
-    const consumed = consumeWaterNutrients(state, desiredNutrient);
-    const growth = consumed * 1.3;
+    const desiredNutrient = Math.min(1.45, 0.18 + growthNeed * 0.05);
+    const consumed = consumeWaterNutrientsAt(state, algae.x, algae.y, desiredNutrient);
     const nutrientFactor = desiredNutrient > 0 ? consumed / desiredNutrient : 1;
-    const solarGrowth = (0.04 + sunlight * 0.18) * (0.4 + nutrientFactor * 0.6);
-    const litter = algae.biomass * 0.0013;
+    const growth = consumed * 1.75;
+    const solarGrowth = (0.08 + sunlight * 0.36) * (0.5 + nutrientFactor * 0.5);
+    const litter = algae.biomass * 0.0015;
 
-    algae.biomass = clamp(algae.biomass + growth + solarGrowth - 0.03 - litter, 0, algae.maxBiomass);
-    state.waterNutrients = clamp(state.waterNutrients + litter * 0.88, 0, WATER_NUTRIENT_MAX);
+    algae.biomass = clamp(algae.biomass + growth + solarGrowth - 0.018 - litter, 0, algae.maxBiomass);
+    addNutrientsAt(state, world, algae.x, algae.y, litter * 0.92);
     algae.energy = algae.biomass;
     algae.hunger = clamp((1 - algae.biomass / algae.maxBiomass) * 100, 0, 100);
     algae.state = algae.biomass < algae.maxBiomass * 0.2 ? "rest" : "idle";
   }
 
-  state.soilNutrients = clamp(state.soilNutrients, 0, SOIL_NUTRIENT_MAX);
-  state.waterNutrients = clamp(state.waterNutrients, 0, WATER_NUTRIENT_MAX);
+  syncNutrientTotals(state);
 }

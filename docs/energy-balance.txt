@@ -1,0 +1,87 @@
+Ecosystem Energy Balancing Notes
+================================
+
+Time model
+----------
+- 1 day = 1000 ticks
+- 1 hour = 1000 / 24 = 41.67 ticks
+- Decomposition delay for carcasses/rests = 4 hours = 166.67 ticks (~167)
+
+Core energy equation (animals)
+------------------------------
+Per tick:
+
+  total_cost = base_cost + (speed_magnitude * move_cost_factor) + (hunger * 0.0011)
+  energy = energy - total_cost
+  hunger = hunger + hunger_growth
+
+Movement hierarchy (larger species pay more):
+- insect move_cost_factor = 0.015
+- fish move_cost_factor = 0.020
+- duck move_cost_factor = 0.030
+- leopard move_cost_factor = 0.045
+
+Base metabolic hierarchy:
+- insect base_cost = 0.028
+- fish base_cost = 0.040
+- duck base_cost = 0.055
+- leopard base_cost = 0.085
+
+Hysteresis (energy target behavior)
+-----------------------------------
+- Each animal has:
+  - energyTarget (upper goal)
+  - energyResume (lower trigger)
+- duck and leopard use this strongly:
+  - if energy >= energyTarget and hunger is low: rest/hibernate (minimal movement)
+  - if energy <= energyResume: return to hunting/foraging
+
+This prevents free hunting and reduces unnecessary movement drain.
+
+Predation transfer model
+------------------------
+When predator eats prey:
+- predator absorbs all prey.energy up to predator.maxEnergy
+- overflow is dropped as leftover carcass at the kill position
+- leftovers are edible by other species
+- leftover decomposition starts after ~167 ticks, then decays slowly
+
+Example:
+- leopard energy = 250, leopard max = 280
+- duck prey energy = 60
+- absorbed = min(60, 30) = 30
+- leftover = 30 (spawns as carcass/rest)
+
+Target daily budgets (design intent)
+------------------------------------
+Duck:
+- intended maintenance around ~90-120 energy/day depending movement + hunger state
+- fish energy typically in the 35-55 range when hunted
+- target: about 2 fish/day + occasional algae/scavenge keeps adults stable
+
+Leopard:
+- intended maintenance around ~140-180 energy/day depending movement + hunger state
+- duck energy typically in the 75-120 range when hunted
+- target: about 2 ducks/day is enough for adult survival
+
+These are balancing targets, not hard guarantees. Real outcomes vary by seed and local population waves.
+
+Birth energy cost
+-----------------
+- duck reproduction cost to parent = 10% of duck.maxEnergy
+- leopard reproduction cost to parent = 10% of leopard.maxEnergy
+
+This avoids "free births" and keeps predator reproduction tied to food surplus.
+
+Producers and environmental compensation
+----------------------------------------
+To offset ecosystem energy dissipation from movement/metabolism:
+- trees and algae receive stronger solar growth terms
+- trees and algae consume local nutrients from a 2D nutrient grid
+- each cell receives small baseline nutrient renewal each tick
+- decomposition and waste return nutrients to local cells
+
+Result:
+- better long-run biomass support
+- slower hunger pressure
+- more chance to keep higher animal counts before collapses

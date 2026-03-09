@@ -7,6 +7,7 @@ import type {
   InsectEntity,
   LeopardEntity,
   LivingSpecies,
+  NutrientGrid,
   TreeEntity
 } from "./types";
 import type { WorldMap } from "../world/map";
@@ -31,20 +32,76 @@ export const DEFAULT_COUNTS: InitialCounts = {
   leopards: 2
 };
 
+const NUTRIENT_GRID_COLS = 25;
+const NUTRIENT_GRID_ROWS = 16;
+const NUTRIENT_CELL_MAX = 26;
+
 function nextId(state: EcosystemState): number {
   const id = state.nextEntityId;
   state.nextEntityId += 1;
   return id;
 }
 
-export function createEmptyState(seed: number): EcosystemState {
+function createNutrientGrid(world: WorldMap): NutrientGrid {
+  const cols = NUTRIENT_GRID_COLS;
+  const rows = NUTRIENT_GRID_ROWS;
+  const cellWidth = world.width / cols;
+  const cellHeight = world.height / rows;
+  const size = cols * rows;
+
+  const soil = new Array<number>(size).fill(0);
+  const water = new Array<number>(size).fill(0);
+  const soilMask = new Array<boolean>(size).fill(false);
+  const waterMask = new Array<boolean>(size).fill(false);
+
+  for (let row = 0; row < rows; row += 1) {
+    for (let col = 0; col < cols; col += 1) {
+      const index = row * cols + col;
+      const centerX = (col + 0.5) * cellWidth;
+      const biome = biomeAt(world, centerX);
+
+      if (biome === "lake") {
+        waterMask[index] = true;
+        water[index] = 10 + ((col * 11 + row * 7) % 6) * 0.6;
+      } else {
+        soilMask[index] = true;
+        soil[index] = 8 + ((col * 7 + row * 13) % 5) * 0.55;
+      }
+    }
+  }
+
+  return {
+    cols,
+    rows,
+    cellWidth,
+    cellHeight,
+    maxPerCell: NUTRIENT_CELL_MAX,
+    soil,
+    water,
+    soilMask,
+    waterMask
+  };
+}
+
+function sum(values: readonly number[]): number {
+  let total = 0;
+  for (const value of values) {
+    total += value;
+  }
+  return total;
+}
+
+export function createEmptyState(seed: number, world: WorldMap): EcosystemState {
+  const nutrientGrid = createNutrientGrid(world);
+
   return {
     tick: 0,
     seed,
     nextEntityId: 1,
     totalDeaths: 0,
-    soilNutrients: 1500,
-    waterNutrients: 1450,
+    nutrientGrid,
+    soilNutrients: sum(nutrientGrid.soil),
+    waterNutrients: sum(nutrientGrid.water),
     trees: [],
     algae: [],
     insects: [],
@@ -130,7 +187,7 @@ export function spawnInsect(
   y?: number
 ): InsectEntity {
   const pos = x === undefined || y === undefined ? randomPointInBiome(world, rng, "forest") : { x, y };
-  const maxEnergy = rng.float(24, 32);
+  const maxEnergy = rng.float(26, 34);
 
   const insect: InsectEntity = {
     id: nextId(state),
@@ -142,14 +199,17 @@ export function spawnInsect(
     energy: maxEnergy * rng.float(0.45, 0.8),
     maxEnergy,
     age: rng.int(0, 90),
-    hunger: rng.float(8, 30),
+    hunger: rng.float(4, 16),
     state: "wander",
     alive: true,
     vision: rng.float(42, 75),
     speed: rng.float(0.9, 1.35),
     reproductionCooldown: rng.int(0, 30),
     maxAge: rng.int(850, 1100),
-    wanderAngle: rng.float(0, Math.PI * 2)
+    wanderAngle: rng.float(0, Math.PI * 2),
+    energyTarget: maxEnergy * 0.75,
+    energyResume: maxEnergy * 0.46,
+    resting: false
   };
 
   state.insects.push(insect);
@@ -164,7 +224,7 @@ export function spawnFish(
   y?: number
 ): FishEntity {
   const pos = x === undefined || y === undefined ? randomPointInBiome(world, rng, "lake") : { x, y };
-  const maxEnergy = rng.float(42, 56);
+  const maxEnergy = rng.float(48, 68);
 
   const fish: FishEntity = {
     id: nextId(state),
@@ -176,14 +236,17 @@ export function spawnFish(
     energy: maxEnergy * rng.float(0.5, 0.8),
     maxEnergy,
     age: rng.int(0, 280),
-    hunger: rng.float(8, 30),
+    hunger: rng.float(4, 14),
     state: "wander",
     alive: true,
     vision: rng.float(64, 95),
     speed: rng.float(1.1, 1.55),
     reproductionCooldown: rng.int(40, 120),
     maxAge: rng.int(2200, 2900),
-    wanderAngle: rng.float(0, Math.PI * 2)
+    wanderAngle: rng.float(0, Math.PI * 2),
+    energyTarget: maxEnergy * 0.74,
+    energyResume: maxEnergy * 0.45,
+    resting: false
   };
 
   state.fish.push(fish);
@@ -198,7 +261,7 @@ export function spawnDuck(
   y?: number
 ): DuckEntity {
   const pos = x === undefined || y === undefined ? randomPointInBiome(world, rng, "transition") : { x, y };
-  const maxEnergy = rng.float(92, 124);
+  const maxEnergy = rng.float(126, 170);
 
   const duck: DuckEntity = {
     id: nextId(state),
@@ -210,14 +273,17 @@ export function spawnDuck(
     energy: maxEnergy * rng.float(0.55, 0.85),
     maxEnergy,
     age: rng.int(0, 500),
-    hunger: rng.float(6, 24),
+    hunger: rng.float(3, 12),
     state: "wander",
     alive: true,
     vision: rng.float(86, 130),
     speed: rng.float(1.05, 1.45),
     reproductionCooldown: rng.int(80, 220),
     maxAge: rng.int(3400, 4300),
-    wanderAngle: rng.float(0, Math.PI * 2)
+    wanderAngle: rng.float(0, Math.PI * 2),
+    energyTarget: maxEnergy * 0.8,
+    energyResume: maxEnergy * 0.52,
+    resting: false
   };
 
   state.ducks.push(duck);
@@ -232,7 +298,7 @@ export function spawnLeopard(
   y?: number
 ): LeopardEntity {
   const pos = x === undefined || y === undefined ? randomPointInBiome(world, rng, "forest") : { x, y };
-  const maxEnergy = rng.float(170, 220);
+  const maxEnergy = rng.float(230, 300);
 
   const leopard: LeopardEntity = {
     id: nextId(state),
@@ -244,18 +310,26 @@ export function spawnLeopard(
     energy: maxEnergy * rng.float(0.6, 0.85),
     maxEnergy,
     age: rng.int(0, 650),
-    hunger: rng.float(6, 22),
+    hunger: rng.float(2, 10),
     state: "wander",
     alive: true,
     vision: rng.float(110, 170),
     speed: rng.float(1.25, 1.75),
     reproductionCooldown: rng.int(240, 500),
     maxAge: rng.int(5200, 6800),
-    wanderAngle: rng.float(0, Math.PI * 2)
+    wanderAngle: rng.float(0, Math.PI * 2),
+    energyTarget: maxEnergy * 0.82,
+    energyResume: maxEnergy * 0.5,
+    resting: false
   };
 
   state.leopards.push(leopard);
   return leopard;
+}
+
+export interface CarcassSpawnOptions {
+  decomposeDelayTicks?: number;
+  isLeftover?: boolean;
 }
 
 export function spawnCarcass(
@@ -265,7 +339,8 @@ export function spawnCarcass(
   y: number,
   biomass: number,
   aquatic: boolean,
-  rng: SeededRng
+  rng: SeededRng,
+  options?: CarcassSpawnOptions
 ): CarcassEntity {
   const safeBiomass = Math.max(1, biomass);
 
@@ -286,8 +361,10 @@ export function spawnCarcass(
     vision: 0,
     biomass: safeBiomass,
     maxBiomass: safeBiomass,
-    decayRate: rng.float(0.45, 0.9),
-    aquatic
+    decayRate: rng.float(0.16, 0.42),
+    aquatic,
+    decomposeDelayTicks: Math.max(0, Math.floor(options?.decomposeDelayTicks ?? 0)),
+    isLeftover: options?.isLeftover ?? false
   };
 
   state.carcasses.push(carcass);
@@ -300,7 +377,7 @@ export function createInitialState(
   seed: number,
   counts: InitialCounts = DEFAULT_COUNTS
 ): EcosystemState {
-  const state = createEmptyState(seed);
+  const state = createEmptyState(seed, world);
 
   for (let i = 0; i < counts.trees; i += 1) {
     spawnTree(state, world, rng);

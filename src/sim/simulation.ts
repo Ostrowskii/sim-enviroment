@@ -14,7 +14,7 @@ import { updateInsects } from "../species/insects";
 import { updateLeopards } from "../species/leopards";
 import { createWorldMap, type WorldMap } from "../world/map";
 import { runReproductionCycle } from "./reproduction";
-import { updatePrimaryProducers } from "./resources";
+import { syncNutrientTotals, updatePrimaryProducers } from "./resources";
 
 export interface SimulationOptions {
   width: number;
@@ -54,13 +54,15 @@ export class EcosystemSimulation {
   step(): void {
     this._state.tick += 1;
 
-    updatePrimaryProducers(this._state);
+    updatePrimaryProducers(this._state, this.world);
     updateInsects(this._state, this.world, this.rng);
     updateFish(this._state, this.world, this.rng);
     updateDucks(this._state, this.world, this.rng);
     updateLeopards(this._state, this.world, this.rng);
     updateDecomposition(this._state, this.world);
+    syncNutrientTotals(this._state);
     runReproductionCycle(this._state, this.world, this.rng);
+    syncNutrientTotals(this._state);
 
     this.cleanupDeadAnimals();
   }

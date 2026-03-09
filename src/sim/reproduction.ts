@@ -11,12 +11,13 @@ import type { SeededRng } from "../utils/rng";
 import type { WorldMap } from "../world/map";
 import { biomeAt } from "../world/map";
 import { hasNearby } from "./query";
+import { consumeSoilNutrientsAt, consumeWaterNutrientsAt } from "./resources";
 
 const CAP_TREE = 42;
 const CAP_ALGAE = 130;
 const CAP_INSECT = 190;
 const CAP_FISH = 90;
-const CAP_DUCK = 14;
+const CAP_DUCK = 18;
 const CAP_LEOPARD = 8;
 
 function nearbyPosition(
@@ -73,7 +74,7 @@ function reproduceTrees(state: EcosystemState, world: WorldMap, rng: SeededRng):
     }
 
     spawnTree(state, world, rng, candidate.x, candidate.y);
-    state.soilNutrients = Math.max(0, state.soilNutrients - 30);
+    consumeSoilNutrientsAt(state, candidate.x, candidate.y, 28);
     tree.food *= 0.82;
     tree.spreadCooldown = rng.int(260, 520);
   }
@@ -112,7 +113,7 @@ function reproduceAlgae(state: EcosystemState, world: WorldMap, rng: SeededRng):
     }
 
     spawnAlgae(state, world, rng, candidate.x, candidate.y);
-    state.waterNutrients = Math.max(0, state.waterNutrients - 14);
+    consumeWaterNutrientsAt(state, candidate.x, candidate.y, 14);
     algae.biomass *= 0.8;
     algae.spreadCooldown = rng.int(80, 180);
   }
@@ -120,10 +121,11 @@ function reproduceAlgae(state: EcosystemState, world: WorldMap, rng: SeededRng):
 
 function resetNewbornAnimal(newborn: AnyAnimal): void {
   newborn.age = 0;
-  newborn.hunger = 10;
+  newborn.hunger = 6;
   newborn.vx = 0;
   newborn.vy = 0;
   newborn.state = "idle";
+  newborn.resting = false;
 }
 
 function reproduceInsects(state: EcosystemState, world: WorldMap, rng: SeededRng): void {
@@ -137,11 +139,11 @@ function reproduceInsects(state: EcosystemState, world: WorldMap, rng: SeededRng
       return;
     }
 
-    if (!insect.alive || insect.reproductionCooldown > 0 || insect.age < 50 || insect.energy < 18) {
+    if (!insect.alive || insect.reproductionCooldown > 0 || insect.age < 60 || insect.energy < 20) {
       continue;
     }
 
-    if (!rng.chance(0.035)) {
+    if (!rng.chance(0.03)) {
       continue;
     }
 
@@ -150,9 +152,9 @@ function reproduceInsects(state: EcosystemState, world: WorldMap, rng: SeededRng
     resetNewbornAnimal(child);
     child.energy = child.maxEnergy * 0.55;
 
-    insect.energy -= 7.5;
-    insect.hunger += 7;
-    insect.reproductionCooldown = rng.int(55, 95);
+    insect.energy -= 6.8;
+    insect.hunger += 6;
+    insect.reproductionCooldown = rng.int(60, 100);
   }
 }
 
@@ -167,11 +169,11 @@ function reproduceFish(state: EcosystemState, world: WorldMap, rng: SeededRng): 
       return;
     }
 
-    if (!fish.alive || fish.reproductionCooldown > 0 || fish.age < 130 || fish.energy < 22) {
+    if (!fish.alive || fish.reproductionCooldown > 0 || fish.age < 140 || fish.energy < 28) {
       continue;
     }
 
-    if (!rng.chance(0.035)) {
+    if (!rng.chance(0.03)) {
       continue;
     }
 
@@ -184,9 +186,9 @@ function reproduceFish(state: EcosystemState, world: WorldMap, rng: SeededRng): 
     resetNewbornAnimal(child);
     child.energy = child.maxEnergy * 0.5;
 
-    fish.energy -= 12;
+    fish.energy -= 11;
     fish.hunger += 6;
-    fish.reproductionCooldown = rng.int(95, 170);
+    fish.reproductionCooldown = rng.int(110, 190);
   }
 }
 
@@ -201,11 +203,16 @@ function reproduceDucks(state: EcosystemState, world: WorldMap, rng: SeededRng):
       return;
     }
 
-    if (!duck.alive || duck.reproductionCooldown > 0 || duck.age < 110 || duck.energy < 50) {
+    if (
+      !duck.alive ||
+      duck.reproductionCooldown > 0 ||
+      duck.age < 130 ||
+      duck.energy < duck.maxEnergy * 0.62
+    ) {
       continue;
     }
 
-    if (!rng.chance(0.02)) {
+    if (!rng.chance(0.018)) {
       continue;
     }
 
@@ -214,9 +221,9 @@ function reproduceDucks(state: EcosystemState, world: WorldMap, rng: SeededRng):
     resetNewbornAnimal(child);
     child.energy = child.maxEnergy * 0.48;
 
-    duck.energy -= 14;
+    duck.energy -= duck.maxEnergy * 0.1;
     duck.hunger += 4;
-    duck.reproductionCooldown = rng.int(160, 280);
+    duck.reproductionCooldown = rng.int(180, 320);
   }
 }
 
@@ -234,13 +241,13 @@ function reproduceLeopards(state: EcosystemState, world: WorldMap, rng: SeededRn
     if (
       !leopard.alive ||
       leopard.reproductionCooldown > 0 ||
-      leopard.age < 560 ||
-      leopard.energy < 124
+      leopard.age < 620 ||
+      leopard.energy < leopard.maxEnergy * 0.66
     ) {
       continue;
     }
 
-    if (!rng.chance(0.006)) {
+    if (!rng.chance(0.0045)) {
       continue;
     }
 
@@ -253,9 +260,9 @@ function reproduceLeopards(state: EcosystemState, world: WorldMap, rng: SeededRn
     resetNewbornAnimal(child);
     child.energy = child.maxEnergy * 0.45;
 
-    leopard.energy -= 28;
+    leopard.energy -= leopard.maxEnergy * 0.1;
     leopard.hunger += 6;
-    leopard.reproductionCooldown = rng.int(540, 860);
+    leopard.reproductionCooldown = rng.int(650, 980);
   }
 }
 
