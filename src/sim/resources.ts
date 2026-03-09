@@ -5,6 +5,7 @@ import { clamp } from "../utils/math";
 
 const SOIL_NUTRIENT_MAX = 3200;
 const WATER_NUTRIENT_MAX = 3200;
+const DAY_LENGTH_TICKS = 1000;
 
 export function addNutrientsAt(
   state: EcosystemState,
@@ -37,6 +38,9 @@ export function consumeWaterNutrients(state: EcosystemState, amount: number): nu
 }
 
 export function updatePrimaryProducers(state: EcosystemState): void {
+  const dayPhase = (state.tick % DAY_LENGTH_TICKS) / DAY_LENGTH_TICKS;
+  const sunlight = Math.max(0, Math.sin(dayPhase * Math.PI * 2 - Math.PI / 2));
+
   // Very small baseline mineral input to prevent nutrient deadlocks.
   state.soilNutrients = clamp(state.soilNutrients + 0.08, 0, SOIL_NUTRIENT_MAX);
   state.waterNutrients = clamp(state.waterNutrients + 0.1, 0, WATER_NUTRIENT_MAX);
@@ -53,8 +57,9 @@ export function updatePrimaryProducers(state: EcosystemState): void {
     const desiredNutrient = Math.min(tree.nutrientDemand, 0.16 + growthNeed * 0.03);
     const consumed = consumeSoilNutrients(state, desiredNutrient);
     const growth = consumed * 1.4;
+    const solarGrowth = 0.03 + sunlight * 0.12;
 
-    tree.food = clamp(tree.food + growth - 0.03, 0, tree.maxFood);
+    tree.food = clamp(tree.food + growth + solarGrowth - 0.03, 0, tree.maxFood);
     tree.energy = tree.food;
     tree.hunger = clamp((1 - tree.food / tree.maxFood) * 100, 0, 100);
     tree.state = tree.food < tree.maxFood * 0.25 ? "rest" : "idle";
@@ -72,8 +77,9 @@ export function updatePrimaryProducers(state: EcosystemState): void {
     const desiredNutrient = Math.min(1.15, 0.12 + growthNeed * 0.035);
     const consumed = consumeWaterNutrients(state, desiredNutrient);
     const growth = consumed * 1.3;
+    const solarGrowth = 0.04 + sunlight * 0.16;
 
-    algae.biomass = clamp(algae.biomass + growth - 0.02, 0, algae.maxBiomass);
+    algae.biomass = clamp(algae.biomass + growth + solarGrowth - 0.02, 0, algae.maxBiomass);
     algae.energy = algae.biomass;
     algae.hunger = clamp((1 - algae.biomass / algae.maxBiomass) * 100, 0, 100);
     algae.state = algae.biomass < algae.maxBiomass * 0.2 ? "rest" : "idle";

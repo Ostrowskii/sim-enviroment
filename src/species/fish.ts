@@ -28,6 +28,13 @@ export function updateFish(state: EcosystemState, world: WorldMap, rng: SeededRn
       continue;
     }
 
+    const algaeFood = findNearest(
+      fish,
+      state.algae,
+      fish.vision * 1.25,
+      (algae) => algae.alive && algae.biomass > 0.8
+    );
+
     const insectPrey = findNearest(
       fish,
       state.insects,
@@ -35,7 +42,24 @@ export function updateFish(state: EcosystemState, world: WorldMap, rng: SeededRn
       (insect) => insect.alive && biomeAt(world, insect.x) === "lake"
     );
 
-    if (insectPrey) {
+    const shouldPreferAlgae = Boolean(algaeFood) && (fish.hunger > 14 || !insectPrey);
+
+    if (shouldPreferAlgae && algaeFood) {
+      const algaeDistance = distance(fish, algaeFood);
+      fish.state = "seek_food";
+
+      if (algaeDistance < 8) {
+        const eaten = Math.min(3.4, algaeFood.biomass);
+        algaeFood.biomass -= eaten;
+        algaeFood.energy = algaeFood.biomass;
+
+        fish.energy = clamp(fish.energy + eaten * 2.8, 0, fish.maxEnergy);
+        fish.hunger = Math.max(0, fish.hunger - eaten * 12);
+        fish.state = "eat";
+      } else {
+        steerTowards(fish, algaeFood.x, algaeFood.y, 0.3, 1.08);
+      }
+    } else if (insectPrey) {
       const preyDistance = distance(fish, insectPrey);
       fish.state = "hunt";
 
@@ -47,33 +71,24 @@ export function updateFish(state: EcosystemState, world: WorldMap, rng: SeededRn
       } else {
         steerTowards(fish, insectPrey.x, insectPrey.y, 0.28, 1.12);
       }
-    } else {
-      const algaeFood = findNearest(
-        fish,
-        state.algae,
-        fish.vision,
-        (algae) => algae.alive && algae.biomass > 1.8
-      );
+    } else if (algaeFood) {
+      const algaeDistance = distance(fish, algaeFood);
+      fish.state = "seek_food";
 
-      if (algaeFood) {
-        const algaeDistance = distance(fish, algaeFood);
-        fish.state = "seek_food";
+      if (algaeDistance < 8) {
+        const eaten = Math.min(2.6, algaeFood.biomass);
+        algaeFood.biomass -= eaten;
+        algaeFood.energy = algaeFood.biomass;
 
-        if (algaeDistance < 7) {
-          const eaten = Math.min(2.4, algaeFood.biomass);
-          algaeFood.biomass -= eaten;
-          algaeFood.energy = algaeFood.biomass;
-
-          fish.energy = clamp(fish.energy + eaten * 2.4, 0, fish.maxEnergy);
-          fish.hunger = Math.max(0, fish.hunger - eaten * 10);
-          fish.state = "eat";
-        } else {
-          steerTowards(fish, algaeFood.x, algaeFood.y, 0.24, 1.04);
-        }
+        fish.energy = clamp(fish.energy + eaten * 2.5, 0, fish.maxEnergy);
+        fish.hunger = Math.max(0, fish.hunger - eaten * 10);
+        fish.state = "eat";
       } else {
-        fish.state = "wander";
-        applyWander(fish, rng, 0.85);
+        steerTowards(fish, algaeFood.x, algaeFood.y, 0.24, 1.04);
       }
+    } else {
+      fish.state = "wander";
+      applyWander(fish, rng, 0.85);
     }
 
     keepFishInLake(fish, world);
